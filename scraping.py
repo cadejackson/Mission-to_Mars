@@ -1,5 +1,5 @@
 # Import Splinter, BeautifulSoup, and Pandas
-from splinter import Browser
+from splinter import Browser, browser
 from bs4 import BeautifulSoup as soup
 import pandas as pd
 import datetime as dt
@@ -12,6 +12,7 @@ def scrape_all():
     browser = Browser('chrome', **executable_path, headless=True)
 
     news_title, news_paragraph = mars_news(browser)
+    hemisphere_image_urls = mars_hemispheres(browser)
 
     # Run all scraping functions and store results in a dictionary
     data = {
@@ -19,8 +20,9 @@ def scrape_all():
         "news_paragraph": news_paragraph,
         "featured_image": featured_image(browser),
         "facts": mars_facts(),
-        "last_modified": dt.datetime.now()
-    }
+        "last_modified": dt.datetime.now(),
+        "mars_images": hemisphere_image_urls
+        }
 
     # Stop webdriver and return data
     browser.quit()
@@ -96,6 +98,47 @@ def mars_facts():
 
     # Convert dataframe into HTML format, add bootstrap
     return df.to_html(classes="table table-striped")
+
+def mars_hemispheres(browser):
+    
+    # Use browser to visit the URL 
+    url = 'https://marshemispheres.com/'
+    browser.visit(url)
+    
+    # Create a list to hold the images and titles.
+    hemisphere_image_urls = []
+
+    # Write code to retrieve the image urls and titles for each hemisphere.
+
+    # Parse the resulting html with soup
+    html = browser.html
+    mars_soup = soup(html, 'html.parser')
+    mars_results = mars_soup('div', class_='description')
+
+    for result in mars_results:
+        title = result.find('h3').text
+
+        hemispheres = {}
+
+        # Get URI of Image 
+        browser.links.find_by_partial_text(title).click()
+        html = browser.html
+        img_soup = soup(html, 'html.parser')
+
+        img = img_soup('div', class_='wide-image-wrapper')[0].find(class_='wide-image').get('src')
+        link_url = f'https://marshemispheres.com/{img}'
+        image_title = img_soup('div', class_='cover')[0].find('h2').text
+
+        output = (f' Title: {image_title}, Image Url: {link_url} ')
+
+        hemispheres["title"] = image_title
+        hemispheres["img_url"] = link_url
+
+        hemisphere_image_urls.append(hemispheres)
+
+        browser.back()
+        
+    return hemisphere_image_urls
 
 if __name__ == "__main__":
 
